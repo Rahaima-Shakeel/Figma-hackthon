@@ -1,52 +1,80 @@
-import ProductCard from './productCard';
-import Navbar from './header';
-import Link from 'next/link'
-const products = [
-  { title: 'Product 1', price: '£250', imageUrl: '/img1.png' },
-  { title: 'Product 2', price: '£180', imageUrl: '/img2.png' },
-  { title: 'Product 3', price: '£120', imageUrl: '/img3.png' },
-  { title: 'Product 4', price: '£350', imageUrl: '/img4.png' },
-  { title: 'Product 5', price: '£400', imageUrl: '/pro1.png' },
-  { title: 'Product 6', price: '£300', imageUrl: '/pro2.png' },
-  { title: 'Product 7', price: '£280', imageUrl: '/pro3.png' },
-  { title: 'Product 8', price: '£200', imageUrl: '/pro4.png' },
-];
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { client } from "@/sanity/lib/client";
+import Image from "next/image";
+import Link from "next/link";
+import Navbar from "./header";
+
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  imageUrl: string;
+}
+
+export default function Products() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const query = `*[_type == "product"]{ 
+        _id, 
+        name, 
+        price, 
+        "imageUrl": 
+            image.asset->url 
+        }`;
+        const products = await client.fetch(query);
+        setProducts(products);
+      } catch (error) {
+        setError(error as Error);
+      }
+    };
+    fetchProducts();
+  }, []);
+
   return (
-    <>
-    <header>
-      <Navbar />
-    </header>
-    <div className="space-y-12 py-10">
-        {/* Upper Section: 4 Cards */}
-        <div className="flex justify-center gap-8 flex-wrap">
-          {products.slice(0, 4).map((product, index) => (
-            <ProductCard key={index} title={product.title} price={product.price} imageUrl={product.imageUrl} />
-          ))}
-        </div>
-
-        {/* Middle Section: Different Image Layout */}
-        <div className="flex justify-center gap-8 flex-wrap">
-          {products.slice(4, 8).map((product, index) => (
-            <ProductCard key={index} title={product.title} price={product.price} imageUrl={product.imageUrl} />
-          ))}
-        </div>
-
-        {/* Lower Section: 4 Cards */}
-        <div className="flex justify-center gap-8 flex-wrap">
-          {products.slice(0, 4).map((product, index) => (
-            <ProductCard key={index} title={product.title} price={product.price} imageUrl={product.imageUrl} />
-          ))}
-        </div>
-       <div className="flex justify-center mt-12">
-      <Link href="/ProductListing">
-        <button className="px-8 py-3 bg-gray-200 text-[#2A254B] font-satoshi text-lg rounded-lg">
-          View product details
-        </button>
-      </Link>
+    <div className="bg-gray-50 min-h-screen">
+      <header>
+        <Navbar />
+      </header>
+      <div className="container mx-auto px-4 mt-8">
+        {error ? (
+          <div className="text-center text-red-500 text-xl">
+            Error: {error.message}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+            {products.map((product) => (
+              <Link
+                key={product._id}
+                href={`/AllProducts/${product._id}`}
+                className="relative block group w-full max-w-[305px] h-[462px] rounded-lg overflow-hidden"
+              >
+                <div className="relative w-full h-[75%] bg-gray-200">
+                  <Image
+                    src={product.imageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="p-4 flex flex-col gap-2">
+                  <h4 className="text-xl font-semibold text-[#2A254B]">
+                    {product.name}
+                  </h4>
+                  <p className="text-lg font-medium text-[#2A254B]">
+                    ${product.price}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
-        </div>
-      </>
   );
 }
